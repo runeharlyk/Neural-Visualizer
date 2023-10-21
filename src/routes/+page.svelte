@@ -4,6 +4,7 @@
   import * as tf from '@tensorflow/tfjs';
   import SceneBuilder from '../lib/sceneBuilder';
 	import { BoxGeometry, BufferAttribute, BufferGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial } from 'three';
+  import '../app.css'
 
   let sceneManager:SceneBuilder
   let canvas:HTMLCanvasElement;
