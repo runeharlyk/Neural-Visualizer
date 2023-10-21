@@ -3,12 +3,19 @@
   import { MnistData } from '../lib/data';
   import * as tf from '@tensorflow/tfjs';
   import SceneBuilder from '../lib/sceneBuilder';
-	import { BoxGeometry, BufferAttribute, BufferGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial } from 'three';
+	import { BoxGeometry, Color, InstancedMesh, Matrix4, MeshBasicMaterial, Raycaster, Vector2 } from 'three';
   import '../app.css'
 
   let sceneManager:SceneBuilder
   let canvas:HTMLCanvasElement;
   let image_data
+
+  let image_mesh:InstancedMesh<BoxGeometry, MeshBasicMaterial>
+
+  const mouse = new Vector2(1, 1);
+  const raycaster = new Raycaster();
+  const color = new Color();
+  const white = new Color().setHex( 0xffffff );
 
   onMount(async () => {
     createScene()
@@ -41,57 +48,77 @@
     console.log(model.predict(testxs))
     testxs.dispose();
     // console.log(labels, preds);
-    makeGrid(image_data)
+    image_mesh = makeGrid(image_data)
 
     
     //tfvis.show.modelSummary({name: 'Model Architecture', tab: 'Model'}, model);
   })
 
   const render = () => {
-    
+    if (!image_mesh) return 
+    raycaster.setFromCamera(mouse, sceneManager.camera);
+    const intersection = raycaster.intersectObject(image_mesh);
+    if (intersection.length > 0) {
+      console.log("hello");
+      
+      const instanceId = intersection[0].instanceId;
+      image_mesh.getColorAt( instanceId, color );
+      if (color.equals(white)) {
+        image_mesh.setColorAt(instanceId, color.setHex(Math.random() * 0xffffff));
+        if (image_mesh.instanceColor) image_mesh.instanceColor.needsUpdate = true;
+      }
+    }
   }
 
   const createScene = () => {
     sceneManager = new SceneBuilder()
         .addRenderer({ antialias: true, canvas: canvas, alpha: true})
-        .addPerspectiveCamera({x:-0.5, y:0.5, z:1})
+        .addPerspectiveCamera({x:0, y:0, z:1})
         .addOrbitControls(10, 30)
         .addGroundPlane({x:0, y:-2, z:0})
-        .addGridHelper({size:250, divisions:125, y:-2})
+        //.addGridHelper({size:250, divisions:125, y:-2})
         .addAmbientLight({color:0xffffff, intensity:0.3})
         .addDirectionalLight({x:50, y:100, z:100, color:0xffffff, intensity:0.9})
         .addFogExp2(0xcccccc, 0.015)
         .handleResize()
         .addRenderCb(render)
         .startRenderLoop()
-
 }
 
   const makeGrid = (data:Float32Array | Int32Array | Uint8Array) => {
-
-    const gridSize = 28;
+    const gridSize = Math.sqrt(data.length);
     const squareSize = 0.1;
-    const gridSpacing = 0.0001;
-    const halfGridSize = (gridSize - 1) / 2;
+    const gridSpacing = 0.05;
     
     const geometry = new BoxGeometry(squareSize, squareSize, squareSize);
     const material = new MeshBasicMaterial({ color: new Color(0.5, 0.5, 0.5) });
 
-    const mesh = new InstancedMesh( geometry, material, gridSize**2 );
-
+    const mesh = new InstancedMesh(geometry, material, gridSize**2);
+    mesh.position.x -= (gridSize * squareSize + gridSize * gridSpacing) / 2
+    mesh.position.y -= (gridSize * squareSize + gridSize * gridSpacing) / 2
     const matrix = new Matrix4();
-    let i = 0;
-    const offset = gridSpacing//( gridSize**2 - 1 ) / 2;
     
-    for ( let x = 0; x < gridSize; x ++ ) {
-      for ( let y = 0; y < gridSize; y ++ ) {
-          matrix.setPosition( (x+offset*x)/4 - halfGridSize*offset, (offset*y + y/4),0);
-          mesh.setMatrixAt( i, matrix );
-          mesh.setColorAt( i, new Color(data[i],data[i],data[i]) );
-          i ++;
+    for (let x = 0; x < gridSize; x++) {
+      for (let y = 0; y < gridSize; y++) {
+          const i = x + y * gridSize 
+          matrix.setPosition(x * squareSize + x * gridSpacing, y * squareSize + y * gridSpacing, 0);
+          mesh.setMatrixAt(i, matrix);
+          mesh.setColorAt(i, new Color(data[i], data[i], data[i]));
       }
     }
     sceneManager.scene.add(mesh)
+    return mesh
+  }
+
+  const onResize = () => {
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+  }
+
+  const onMouseMove = (event:MouseEvent) => {
+    event.preventDefault();
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
   }
 
   async function train(model, data) {
@@ -222,13 +249,8 @@ async function showConfusion(model, data) {
 
   labels.dispose();
 }
-
 </script>
 
-<style>
-  canvas {
-    background-color: #2e019e;
-  }
-</style>
-
-<canvas bind:this={canvas}></canvas>
+<svelte:body class="m-0" on:mousemove={onMouseMove}></svelte:body>
+<svelte:window on:resize={onResize}></svelte:window>
+<canvas bind:this={canvas} class="bg-indigo-700 w-full h-full"></canvas>
