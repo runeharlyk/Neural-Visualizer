@@ -22,14 +22,18 @@ class tensorflow3DModel {
   mesh: Group
 	squareSize: number;
 	gridSpacing: number;
+	grid: InstancedMesh<BoxGeometry, MeshBasicMaterial>;
 	//grid: InstancedMesh<BoxGeometry, MeshBasicMaterial>;
   constructor(model:tf.Sequential | tf.LayersModel) {
     this.model = model
     this.mesh = new Group()
     this.squareSize = 0.1;
     this.gridSpacing = 0.05;
+
+    this.grid = this.makeInputGrid()
+    this.mesh.add(this.grid)
     
-    this.debug()
+    this.displayLayers()
   }
 
   modelWidthInput = () => this.model.inputLayers[0].batchInputShape[1] ?? 1
@@ -38,14 +42,11 @@ class tensorflow3DModel {
   layerInput = (layer: tf.layers.Layer) => layer.input.shape
   layerOutput = (layer: tf.layers.Layer) => layer.input.output
 
-  debug = () => {
+  displayLayers = () => {
     let i = 0
-    const grid = this.makeInputGrid()
-    this.mesh.add(grid)
 
-    //console.log('Model input: ', [this.modelWidthInput(), this.modelHeightInput()], 'px');
     this.model.layers.forEach(layer => {    
-      i += 2
+      i += 5
       
       switch(layer.constructor.name){
         case '_Conv2D':
@@ -124,6 +125,17 @@ class tensorflow3DModel {
     }
     return mesh
   }
+
+  setData = (data:Float32Array | Int32Array | Uint8Array) => {
+    const gridSize = Math.sqrt(data.length);
+    for (let x = 0; x < gridSize; x++) {
+      for (let y = 0; y < gridSize; y++) {
+        const i = x + y * gridSize 
+        this.grid.setColorAt(i, new Color(data[i], data[i], data[i]));
+      }
+    }
+    if (this.grid.instanceColor) this.grid.instanceColor.needsUpdate = true;
+  }
 }
 
   onMount(async () => {
@@ -146,6 +158,7 @@ class tensorflow3DModel {
 
     const tfModel = new tensorflow3DModel(model)
     sceneManager.scene.add(tfModel.mesh)
+    tfModel.setData(image_data)
     // if(localStorage.getItem("demo") !== null){
     // } else {
     //   model = getModel();
@@ -175,7 +188,7 @@ class tensorflow3DModel {
     sceneManager = new SceneBuilder()
         .addRenderer({ antialias: true, canvas: canvas, alpha: true})
         .addPerspectiveCamera({x:0, y:0, z:1})
-        .addOrbitControls(10, 30)
+        .addOrbitControls(30, 50)
         .addGroundPlane({x:0, y:-2, z:0})
         .addAmbientLight({color:0xffffff, intensity:0.3})
         .addDirectionalLight({x:50, y:100, z:100, color:0xffffff, intensity:0.9})
