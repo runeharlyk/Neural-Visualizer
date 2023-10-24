@@ -92,10 +92,15 @@ export default class SceneBuilder {
 		return this;
 	};
 
-	public addOrbitControls = (minDistance: number, maxDistance: number) => {
+	public addOrbitControls = (
+		minDistance: number,
+		maxDistance: number,
+		autoRotate: boolean = true
+	) => {
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.controls.minDistance = minDistance;
 		this.controls.maxDistance = maxDistance;
+		this.controls.autoRotate = autoRotate;
 		this.controls.update();
 		return this;
 	};
@@ -145,6 +150,7 @@ export default class SceneBuilder {
 
 	public startRenderLoop = () => {
 		this.renderer.setAnimationLoop(() => {
+			this.controls.update();
 			this.renderer.render(this.scene, this.camera);
 			this.handleRobotShadow();
 			if (this.callback) this.callback();
