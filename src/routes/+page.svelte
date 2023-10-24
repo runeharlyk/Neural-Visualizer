@@ -24,7 +24,7 @@
     data = new MnistData();
     await data.load();
 
-    console.log("Loading model");
+    //console.log("Loading model");
     let model
     model = await tf.loadLayersModel('localstorage://demo');
     
@@ -38,7 +38,6 @@
 
     tfModel = new Tensorflow3DModel(model, testData)
     sceneManager.scene.add(tfModel.mesh)
-    tfModel.setData(image_data)
     // if(localStorage.getItem("demo") !== null){
     // } else {
     //   model = getModel();

@@ -8,10 +8,9 @@ export default class Tensorflow3DModel {
 	gridSpacing: number;
 	grid: InstancedMesh<BoxGeometry, MeshBasicMaterial>;
 	input: Float32Array | Int32Array | Uint8Array;
-	layers: Group[] = [];
+	layers: { [name: string]: Group } = {};
 	data: any;
-	//grid: InstancedMesh<BoxGeometry, MeshBasicMaterial>;
-	//grid: InstancedMesh<BoxGeometry, MeshBasicMaterial>;
+	output: any;
 	constructor(
 		model: tf.Sequential | tf.LayersModel,
 		input: any //: Float32Array | Int32Array | Uint8Array
@@ -22,6 +21,8 @@ export default class Tensorflow3DModel {
 		this.mesh = new Group();
 		this.squareSize = 0.1;
 		this.gridSpacing = 0.05;
+
+		console.log(model);
 
 		this.grid = this.makeInputGrid();
 		this.mesh.add(this.grid);
@@ -44,10 +45,9 @@ export default class Tensorflow3DModel {
 			switch (layer.constructor.name) {
 				case '_Conv2D':
 					this.makeConv2DGrid(layer, i);
-					// this.mesh.add(g)
 					return;
 				case 'MaxPooling2D':
-					// console.log(layer);
+					this.makeMaxPooling2D(layer, i);
 					break;
 				// case 'Flatten':
 				//   console.log('Flatten');
@@ -59,6 +59,11 @@ export default class Tensorflow3DModel {
 		});
 	};
 
+	makeMaxPooling2D = (layer: tf.layers.Layer, offset: number) => {
+		const meshGroup = new Group();
+		this.layers[layer.name] = meshGroup;
+	};
+
 	makeConv2DGrid = (layer: tf.layers.Layer, offset: number) => {
 		const w = layer.output.shape[1];
 		const h = layer.output.shape[2];
@@ -67,9 +72,9 @@ export default class Tensorflow3DModel {
 		const kernels = layer?.kernelSize;
 		const bias = layer?.useBias ? layer?.bias.shape : 0;
 		const output = layer.output.shape;
-		console.log(
-			`Conv input=${w},${h},${n} numfilter=${k}, kernelSize=[${kernels}], bias=${bias}, output=${output}`
-		);
+		// console.log(
+		// 	`Conv input=${w},${h},${n} numfilter=${k}, kernelSize=[${kernels}], bias=${bias}, output=${output}`
+		// );
 
 		const geometry = new BoxGeometry(this.squareSize, this.squareSize, this.squareSize);
 		const material = new MeshBasicMaterial({ color: new Color(0.5, 0.5, 0.5) });
@@ -77,7 +82,7 @@ export default class Tensorflow3DModel {
 		const mOffset = h * (this.squareSize + this.gridSpacing);
 		const gridOffset = -(nGrid * mOffset) / 2;
 		const meshGroup = new Group();
-		this.layers.push(meshGroup);
+		this.layers[layer.name] = meshGroup;
 
 		for (let m = 0; m < n; m++) {
 			const mesh = new InstancedMesh(geometry, material, w * h);
@@ -138,6 +143,24 @@ export default class Tensorflow3DModel {
 		return mesh;
 	};
 
+	imageColorFromTensor = (layerName: string, data: any) => {
+		const desiredLayer = this.model.getLayer(layerName);
+		const intermediateModel = tf.model({
+			inputs: desiredLayer.input,
+			outputs: desiredLayer.output
+		});
+
+		const IMAGE_WIDTH = desiredLayer.input.shape[1];
+		const IMAGE_HEIGHT = desiredLayer.input.shape[2];
+		const IMAGE_DEPTH = desiredLayer.input.shape[3];
+
+		const testxs = data.reshape([1, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_DEPTH]);
+
+		const outputTensor = intermediateModel.predict(testxs);
+
+		return outputTensor;
+	};
+
 	updateDataLayers = () => {
 		let gridSize = Math.sqrt(this.input.length);
 		for (let x = 0; x < gridSize; x++) {
@@ -147,38 +170,24 @@ export default class Tensorflow3DModel {
 			}
 		}
 		if (this.grid.instanceColor) this.grid.instanceColor.needsUpdate = true;
+		this.output = this.data.xs;
+		for (let l = 0; l < Object.keys(this.layers).length; l++) {
+			const layerName = Object.keys(this.layers)[l];
 
-		const desiredLayer = this.model.getLayer('conv2d_Conv2D3');
+			if (layerName != 'conv2d_Conv2D3') continue;
+			const output = this.imageColorFromTensor(layerName, this.output);
+			const fillData = output.dataSync();
 
-		//console.log(desiredLayer);
-
-		const intermediateModel = tf.model({
-			inputs: desiredLayer.input,
-			outputs: desiredLayer.output
-		});
-
-		const IMAGE_WIDTH = desiredLayer.input.shape[1];
-		const IMAGE_HEIGHT = desiredLayer.input.shape[2];
-
-		const testxs = this.data.xs.reshape([1, IMAGE_WIDTH, IMAGE_HEIGHT, 1]);
-
-		const outputTensor = intermediateModel.predict(testxs);
-		const fildata = outputTensor.dataSync();
-
-		// Print or use the output tensor as needed
-		//console.log(outputTensor);
-
-		for (let l = 0; l < 1; l++) {
-			for (let c = 0; c < this.layers[l].children.length; c++) {
-				gridSize = Math.sqrt(this.layers[l].children[c].count);
+			for (let c = 0; c < this.layers[layerName].children.length; c++) {
+				gridSize = Math.sqrt(this.layers[layerName].children[c].count);
 				for (let x = 0; x < gridSize; x++) {
 					for (let y = 0; y < gridSize; y++) {
 						const i = x + y * gridSize;
 						const k = i + gridSize * gridSize * c;
-						const color = fildata[k];
-						this.layers[l].children[c].setColorAt(i, new Color(color, color, color));
-						this.layers[l].children[c].instanceColor.needsUpdate = true;
+						const color = fillData[k];
+						this.layers[layerName].children[c].setColorAt(i, new Color(color, color, color));
 					}
+					this.layers[layerName].children[c].instanceColor.needsUpdate = true;
 				}
 			}
 		}
@@ -195,12 +204,6 @@ export default class Tensorflow3DModel {
 		// 		}
 		// 	});
 		// });
-	};
-
-	applyConvolution = (input, kernel) => {
-		return tf.tidy(() => {
-			return input.conv2d(kernel, 1, 'valid').squeeze();
-		});
 	};
 
 	setData = (data: any) => {
