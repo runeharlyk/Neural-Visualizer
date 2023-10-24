@@ -5,6 +5,7 @@
   import SceneBuilder from '../lib/sceneBuilder';
 	import { BoxGeometry, Color, MeshBasicMaterial, Raycaster, Vector2 } from 'three';
   import Tensorflow3DModel from '../lib/TensorFlow3DModel'
+  import ManuelPredict from '../lib/manualPredict'
   import '../app.css'
 
   let sceneManager:SceneBuilder
@@ -12,6 +13,7 @@
   let image_data
   let start: number
   let tfModel: Tensorflow3DModel
+  let manuelPredict: ManuelPredict
   let data:MnistData
 
   const mouse = new Vector2(1, 1);
@@ -37,6 +39,10 @@
     testxs.dispose();
 
     tfModel = new Tensorflow3DModel(model, testData)
+
+    const tePred = new ManuelPredict(model, testData.xs)
+    tePred.predict()
+
     sceneManager.scene.add(tfModel.mesh)
     // if(localStorage.getItem("demo") !== null){
     // } else {
