@@ -1,8 +1,8 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
 export default class ManuelPredict {
 	model: tf.Sequential | tf.LayersModel;
-	input: tf.Tensor2D;
+	input: tf.Tensor2D | tf.Tensor<tf.Rank> | tf.Tensor<tf.Rank>[];
 	constructor(model: tf.Sequential | tf.LayersModel, input: tf.Tensor2D) {
 		this.model = model;
 		this.input = input;
@@ -15,32 +15,17 @@ export default class ManuelPredict {
 			console.log(this.model.layers[i]);
 
 			if (layerType == '_Conv2D') {
-				let IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_DEPTH;
-				if (this.model.layers[i].batchInputShape) {
-					IMAGE_WIDTH = this.model.layers[i].batchInputShape[1];
-					IMAGE_HEIGHT = this.model.layers[i].batchInputShape[2];
-					IMAGE_DEPTH = this.model.layers[i].batchInputShape[3];
-				} else {
-					IMAGE_WIDTH = this.model.layers[i].input.shape[1];
-					IMAGE_HEIGHT = this.model.layers[i].input.shape[2];
-					IMAGE_DEPTH = this.model.layers[i].input.shape[3];
-				}
-
-				const testxs = this.input.reshape([1, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_DEPTH]);
-				this.input = this.model.layers[i].call(testxs);
+				const inputShape = this.model.layers[i].input.shape;
 				const outputShape = this.model.layers[i].output.shape;
+				inputShape[0] ??= 1;
 				outputShape[0] ??= 1;
+				const testxs = this.input.reshape(inputShape);
+				this.input = this.model.layers[i].call(testxs, {});
 				this.input.reshape(outputShape);
-			}
-			if (layerType == 'MaxPooling2D') {
-				// IMAGE_WIDTH = this.model.layers[i].poolSize[0];
-				// IMAGE_HEIGHT = this.model.layers[i].poolSize[1];
-				this.input = this.model.layers[i].call(this.input);
-				console.log(this.input);
-			}
-			if (layerType == 'Flatten') {
-				console.log('Flat');
+			} else {
+				this.input = this.model.layers[i].call(this.input, {});
 			}
 		}
+		console.log(this.input.argMax(-1).dataSync());
 	};
 }
