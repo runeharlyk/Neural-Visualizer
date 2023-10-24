@@ -172,16 +172,23 @@ class tensorflow3DModel {
     //await model.save('downloads://demo');
   })
 
-  const render = () => {
-    if (!image_mesh) return 
-    raycaster.setFromCamera(mouse, sceneManager.camera);
-    const intersection = raycaster.intersectObject(image_mesh);
-    if (intersection.length > 0) {
-      const instanceId = intersection[0].instanceId ?? 0;
-      image_mesh.getColorAt( instanceId, color );
-      image_mesh.setColorAt(instanceId, white);
-      if (image_mesh.instanceColor) image_mesh.instanceColor.needsUpdate = true;
+  const render = (timeStamp:number) => {
+    if (start === undefined) start = timeStamp
+    if(timeStamp - start > 1000) {
+      const testData = data.nextTestBatch(1);
+      tfModel.setData(testData)
+      start = timeStamp
     }
+
+    // if (!image_mesh) return 
+    // raycaster.setFromCamera(mouse, sceneManager.camera);
+    // const intersection = raycaster.intersectObject(image_mesh);
+    // if (intersection.length > 0) {
+    //   const instanceId = intersection[0].instanceId ?? 0;
+    //   image_mesh.getColorAt( instanceId, color );
+    //   image_mesh.setColorAt(instanceId, white);
+    //   if (image_mesh.instanceColor) image_mesh.instanceColor.needsUpdate = true;
+    // }
   }
 
   const createScene = () => {

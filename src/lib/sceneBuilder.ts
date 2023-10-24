@@ -149,11 +149,11 @@ export default class SceneBuilder {
 	};
 
 	public startRenderLoop = () => {
-		this.renderer.setAnimationLoop(() => {
+		this.renderer.setAnimationLoop((timeStamp) => {
 			this.controls.update();
 			this.renderer.render(this.scene, this.camera);
 			this.handleRobotShadow();
-			if (this.callback) this.callback();
+			if (this.callback) this.callback(timeStamp);
 			if (!this.liveStreamTexture) return;
 		});
 		return this;
