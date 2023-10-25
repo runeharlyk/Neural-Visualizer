@@ -28,7 +28,14 @@
 
     //console.log("Loading model");
     let model
-    model = await tf.loadLayersModel('localstorage://demo');
+    try {
+      model = await tf.loadLayersModel('localstorage://demo');
+
+    } catch {
+      model = getModel();
+      await train(model, data);
+      await model.save('localstorage://demo');
+    }
     
     const IMAGE_WIDTH = 28;
     const IMAGE_HEIGHT = 28;
