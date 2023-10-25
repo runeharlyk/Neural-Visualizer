@@ -40,8 +40,8 @@
 
     tfModel = new Tensorflow3DModel(model, testData)
 
-    const tePred = new ManuelPredict(model, testData.xs)
-    tePred.predict()
+    // const tePred = new ManuelPredict(model, testData.xs)
+    // tePred.predict()
 
     sceneManager.scene.add(tfModel.mesh)
     // if(localStorage.getItem("demo") !== null){
@@ -61,7 +61,7 @@
     if (start === undefined) start = timeStamp
     if(timeStamp - start > 1000) {
       const testData = data.nextTestBatch(1);
-      tfModel.setData(testData)
+      tfModel.setData(testData.xs)
       start = timeStamp
     }
 
