@@ -111,7 +111,7 @@ export default class Tensorflow3DModel {
 			for (let x = 0; x < gridSize; x++) {
 				for (let y = 0; y < gridSize; y++) {
 					const i = x + y * gridSize;
-					const k = i + gridSize * gridSize * c;
+					const k = i + gridSize ** 2 * c;
 					layer.children[c].setColorAt(i, new Color(output[k], output[k], output[k]));
 				}
 				layer.children[c].instanceColor.needsUpdate = true;

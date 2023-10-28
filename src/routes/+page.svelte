@@ -66,7 +66,7 @@
 
   const render = (timeStamp:number) => {
     if (start === undefined) start = timeStamp
-    if(timeStamp - start > 1000) {
+    if(timeStamp - start > 1000 && tfModel) {
       const testData = data.nextTestBatch(1);
       tfModel.setData(testData.xs)
       start = timeStamp
@@ -96,11 +96,6 @@
         .addRenderCb(render)
         .startRenderLoop()
 }
-
-  const onResize = () => {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-  }
 
   const onMouseMove = (event:MouseEvent) => {
     event.preventDefault();
@@ -220,5 +215,4 @@ function doPrediction(model:tf.Sequential, data:MnistData, testDataSize = 500) {
 </script>
 
 <svelte:body class="m-0" on:mousemove={onMouseMove}></svelte:body>
-<svelte:window on:resize={onResize}></svelte:window>
 <canvas bind:this={canvas} class="bg-indigo-700 w-full h-full"></canvas>

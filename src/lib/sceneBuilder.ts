@@ -140,6 +140,8 @@ export default class SceneBuilder {
 		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.camera.aspect = window.innerWidth / window.innerHeight;
 		this.camera.updateProjectionMatrix();
+		this.renderer.domElement.width = window.innerWidth;
+		this.renderer.domElement.height = window.innerHeight;
 		return this;
 	};
 
