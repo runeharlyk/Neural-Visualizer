@@ -21,7 +21,7 @@
     await data.load();
     let model
     try {
-      model = await tf.loadLayersModel('localstorage://demo');
+      model = await tf.loadLayersModel('./model/demo.json');
     } catch {
       console.log("No model were found");
       model = getModel();
