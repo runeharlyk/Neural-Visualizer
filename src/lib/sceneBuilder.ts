@@ -50,7 +50,7 @@ type gridHelperOptions = gridOptions & position;
 
 export default class SceneBuilder {
 	public scene: Scene;
-	public camera: PerspectiveCamera;
+	public camera: PerspectiveCamera | undefined;
 	public ground: Mesh;
 	public renderer: WebGLRenderer;
 	public controls: OrbitControls;
@@ -97,6 +97,10 @@ export default class SceneBuilder {
 		maxDistance: number,
 		autoRotate: boolean = true
 	) => {
+		if (!this.camera) {
+			console.error('Add a camera before adding orbit controlls');
+			return this;
+		}
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.controls.minDistance = minDistance;
 		this.controls.maxDistance = maxDistance;

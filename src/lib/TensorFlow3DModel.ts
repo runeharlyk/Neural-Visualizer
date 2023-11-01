@@ -24,7 +24,7 @@ export default class Tensorflow3DModel {
 	displayLayers = () => {
 		let i = -15;
 		this.model.layers.forEach((layer) => {
-			const showInput = layer.constructor.name == '_Conv2D';
+			const showInput = layer.name.startsWith('conv2d');
 			i += showInput ? 4 : 2;
 			this.makeDefaultGrid(layer, i, showInput);
 		});
@@ -58,8 +58,8 @@ export default class Tensorflow3DModel {
 		const meshGroup = new Group();
 		for (let m = 0; m < instances; m++) {
 			const mesh = new InstancedMesh(geometry, material, width * height);
-			mesh.position.x = 0; //(width * this.squareSize + width * this.gridSpacing) / 4;
-			mesh.position.y = 0; //(height * this.squareSize + height * this.gridSpacing) / 2;
+			mesh.position.x = -(width * this.squareSize + width * this.gridSpacing) / 2;
+			mesh.position.y = -(height * this.squareSize + height * this.gridSpacing) / 2;
 
 			const matrix = new Matrix4();
 
@@ -121,9 +121,8 @@ export default class Tensorflow3DModel {
 
 	updateDataLayers = () => {
 		for (let i = 0; i < this.model.layers.length; i++) {
-			const layerType = this.model.layers[i].constructor.name;
-
-			if (layerType == '_Conv2D') {
+			const layerName = this.model.layers[i].name;
+			if (layerName.startsWith('conv2d')) {
 				const inputShape = this.model.layers[i].input.shape;
 				const outputShape = this.model.layers[i].output.shape;
 				inputShape[0] ??= 1;

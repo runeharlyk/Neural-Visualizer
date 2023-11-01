@@ -3,65 +3,43 @@
   import { MnistData } from '../lib/data';
   import * as tf from '@tensorflow/tfjs';
   import SceneBuilder from '../lib/sceneBuilder';
-	import { BoxGeometry, Color, MeshBasicMaterial, Raycaster, Vector2 } from 'three';
+	import { Vector2 } from 'three';
   import Tensorflow3DModel from '../lib/TensorFlow3DModel'
-  import ManuelPredict from '../lib/manualPredict'
   import '../app.css'
 
   let sceneManager:SceneBuilder
   let canvas:HTMLCanvasElement;
-  let image_data
   let start: number
   let tfModel: Tensorflow3DModel
-  let manuelPredict: ManuelPredict
   let data:MnistData
 
   const mouse = new Vector2(1, 1);
-  const raycaster = new Raycaster();
-  const color = new Color();
-  const white = new Color().setHex( 0xffffff );
 
   onMount(async () => {
     createScene()
     data = new MnistData();
     await data.load();
-
-    //console.log("Loading model");
     let model
     try {
       model = await tf.loadLayersModel('localstorage://demo');
-
     } catch {
+      console.log("No model were found");
       model = getModel();
+      console.log("Traning the model");
       await train(model, data);
       await model.save('localstorage://demo');
+      console.log("Done saving the model");
     }
     
     const IMAGE_WIDTH = 28;
     const IMAGE_HEIGHT = 28;
     const testData = data.nextTestBatch(1);
-    image_data = await testData.xs.data()
     const testxs = testData.xs.reshape([1, IMAGE_WIDTH, IMAGE_HEIGHT, 1]);
-    const preds = model.predict(testxs).argMax(-1);
     testxs.dispose();
 
-    tfModel = new Tensorflow3DModel(model, testData)
-
-    // const tePred = new ManuelPredict(model, testData.xs)
-    // tePred.predict()
+    tfModel = new Tensorflow3DModel(model, testData.xs)
 
     sceneManager.scene.add(tfModel.mesh)
-    // if(localStorage.getItem("demo") !== null){
-    // } else {
-    //   model = getModel();
-    //   console.log("Starting training");
-    //   await train(model, data);
-    //   console.log("Saving model");
-    //   await model.save('localstorage://demo');
-    // }
-    
-    //image_mesh = makeGrid(image_data)
-    //await model.save('downloads://demo');
   })
 
   const render = (timeStamp:number) => {
@@ -86,12 +64,13 @@
   const createScene = () => {
     sceneManager = new SceneBuilder()
         .addRenderer({ antialias: true, canvas: canvas, alpha: true})
-        .addPerspectiveCamera({x:0, y:0, z:1})
+        .addPerspectiveCamera({x:1, y:0.1, z:0})
         .addOrbitControls(30, 50)
-        .addGroundPlane({x:0, y:-2, z:0})
+        .addGroundPlane({x:0, y:0, z:0})
         .addAmbientLight({color:0xffffff, intensity:0.3})
+        //.addGridHelper({divisions: 50, size:100})
         .addDirectionalLight({x:50, y:100, z:100, color:0xffffff, intensity:0.9})
-        .addFogExp2(0xcccccc, 0.015)
+        //.addFogExp2(0xcccccc, 0.015)
         .handleResize()
         .addRenderCb(render)
         .startRenderLoop()
@@ -199,19 +178,6 @@
 
     return model;
   }
-  const classNames = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-
-function doPrediction(model:tf.Sequential, data:MnistData, testDataSize = 500) {
-  const IMAGE_WIDTH = 28;
-  const IMAGE_HEIGHT = 28;
-  const testData = data.nextTestBatch(testDataSize);
-  const testxs = testData.xs.reshape([testDataSize, IMAGE_WIDTH, IMAGE_HEIGHT, 1]);
-  const labels = testData.labels.argMax(-1);
-  const preds = model.predict(testxs).argMax(-1);
-
-  testxs.dispose();
-  return [preds, labels];
-}
 </script>
 
 <svelte:body class="m-0" on:mousemove={onMouseMove}></svelte:body>
