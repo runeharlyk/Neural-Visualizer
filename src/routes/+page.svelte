@@ -21,7 +21,7 @@
     await data.load();
     let model
     try {
-      model = await tf.loadLayersModel('./model/demo.json');
+      model = await tf.loadLayersModel('https://runeharlyk.github.io/Neural-Visualizer/model/demo.json');
     } catch {
       console.log("No model were found");
       model = getModel();
