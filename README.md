@@ -1,7 +1,9 @@
-# Neural Visualizer
+# Neural Visualizer 🧠 
 
 It can be hard to visualize the inner workings of a neural network.
 This project hope to make that easier by rendering the model layers in 3D.
+
+View it [here](https://runeharlyk.github.io/Neural-Visualizer)
 
 ## Overview
 
